@@ -28,7 +28,7 @@ BLEService bleService("180D");
 // Characteristic - custom 128-bit UUID, read and writable by central
 BLEUnsignedCharCharacteristic switchCharacteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLEWrite);
 
-BLECharacteristic motionSensor("2A37", BLERead | BLENotify, 8);
+BLECharCharacteristic motionSensor("13B10001-E5F2-537E-4F6C-D104768A1214", BLERead | BLEWrite);
 
 const int ledPin = 13; //pin for LED
 
@@ -67,7 +67,8 @@ void setup() {
   blePeripheral.addAttribute(motionSensor);
 
   // set the initial value for the characeristic:
-  switchCharacteristic.setValue(0);
+  switchCharacteristic.setValue(7);
+  motionSensor.setValue(9);
 
   // begin advertising BLE service:
   blePeripheral.begin();
@@ -85,6 +86,8 @@ void loop()
   float gx, gy, gz;
   float roll, pitch, heading;
   unsigned long microsNow;
+  bool toggle = true;
+  int count = 0;
 
   // listen for BLE peripherals to connect:
   BLECentral central = blePeripheral.central();
@@ -92,8 +95,23 @@ void loop()
   // if a central is connected to peripheral:
   if (central) 
   {
+    motionSensor.setValue(6);
+    
     while (central.connected())
     {
+      count++;
+      Serial.println(("Device Connected"));
+      if(toggle == true){
+         count++;
+         motionSensor.setValue(count);
+         toggle = false;
+      }
+      else{
+        motionSensor.setValue(count);
+        toggle = true;
+      }
+
+      /*
       digitalWrite(ledPin, HIGH);
       Serial.println(("Device Connected"));
       // check if it's time to read data and update the filter
@@ -128,17 +146,21 @@ void loop()
           blueTooth.write(roll);
           Serial.println(roll);
 
+          switchCharacteristic.setValue(heading);
+
 
         // increment previous time, so we keep proper pace
         microsPrevious = microsPrevious + microsPerReading;
+        */
       }
     }
+    digitalWrite(ledPin, LOW);
+    Serial.println(("No Device Connected."));
   }
 
     // when the central disconnects, print it out:
-    digitalWrite(ledPin, LOW);
-    Serial.println(("No Device Connected."));
- }
+
+
 
 float convertRawAcceleration(int aRaw)
 {
