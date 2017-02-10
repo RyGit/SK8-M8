@@ -26,9 +26,10 @@ BLEPeripheral blePeripheral;
 BLEService bleService("180D");
 
 // Characteristic - custom 128-bit UUID, read and writable by central
-BLEUnsignedCharCharacteristic switchCharacteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLEWrite);
 
-BLECharCharacteristic motionSensor("13B10001-E5F2-537E-4F6C-D104768A1214", BLERead | BLEWrite);
+BLECharCharacteristic rollReading("12B10001-E8F2-537E-4F6C-D104768A1214", BLERead);
+BLECharCharacteristic pitchReading("13B10001-E8F2-537E-4F6C-D104768A1214", BLERead);
+BLECharCharacteristic headingReading("14B10001-E8F2-537E-4F6C-D104768A1214", BLERead); // Fowards and Backwards
 
 const int ledPin = 13; //pin for LED
 
@@ -63,12 +64,14 @@ void setup() {
 
   // add service and characteristic:
   blePeripheral.addAttribute(bleService);
-  blePeripheral.addAttribute(switchCharacteristic);
-  blePeripheral.addAttribute(motionSensor);
+  blePeripheral.addAttribute(rollReading);
+  blePeripheral.addAttribute(pitchReading);
+  blePeripheral.addAttribute(headingReading);
 
   // set the initial value for the characeristic:
-  switchCharacteristic.setValue(7);
-  motionSensor.setValue(9);
+  pitchReading.setValue(7);
+  rollReading.setValue(9);
+  pitchReading.setValue(5);
 
   // begin advertising BLE service:
   blePeripheral.begin();
@@ -84,10 +87,8 @@ void loop()
   int gix, giy, giz;
   float ax, ay, az;
   float gx, gy, gz;
-  float roll, pitch, heading;
-  unsigned long microsNow;
-  bool toggle = true;
-  int count = 0;
+  int roll, pitch, heading;
+
 
   // listen for BLE peripherals to connect:
   BLECentral central = blePeripheral.central();
@@ -95,65 +96,37 @@ void loop()
   // if a central is connected to peripheral:
   if (central) 
   {
-    motionSensor.setValue(6);
+    //motionSensor.setValue(6);
     
     while (central.connected())
     {
-      count++;
-      Serial.println(("Device Connected"));
-      if(toggle == true){
-         count++;
-         motionSensor.setValue(count);
-         toggle = false;
-      }
-      else{
-        motionSensor.setValue(count);
-        toggle = true;
-      }
-
-      /*
       digitalWrite(ledPin, HIGH);
-      Serial.println(("Device Connected"));
-      // check if it's time to read data and update the filter
-      microsNow = micros();
-      if (microsNow - microsPrevious >= microsPerReading)
-      {
-        // read raw data from CurieIMU
-        CurieIMU.readMotionSensor(aix, aiy, aiz, gix, giy, giz);
+      CurieIMU.readMotionSensor(aix, aiy, aiz, gix, giy, giz);
 
-        // convert from raw data to gravity and degrees/second units
-        ax = convertRawAcceleration(aix);
-        ay = convertRawAcceleration(aiy);
-        az = convertRawAcceleration(aiz);
-        gx = convertRawGyro(gix);
-        gy = convertRawGyro(giy);
-        gz = convertRawGyro(giz);
+       // convert from raw data to gravity and degrees/second units
+       ax = convertRawAcceleration(aix);
+       ay = convertRawAcceleration(aiy);
+       az = convertRawAcceleration(aiz);
+       gx = convertRawGyro(gix);
+       gy = convertRawGyro(giy);
+       gz = convertRawGyro(giz);
 
-        // update the filter, which computes orientation
-        filter.updateIMU(gx, gy, gz, ax, ay, az);
+       // update the filter, which computes orientation
+       filter.updateIMU(gx, gy, gz, ax, ay, az);
 
-          // print the heading, pitch and roll
-          roll = filter.getRoll();
-          pitch = filter.getPitch();
-          heading = filter.getYaw();
-          Serial.print("Orientation: ");
-          blueTooth.write(heading);
-          Serial.print(heading);
-          Serial.print(" ");
-          blueTooth.write(pitch);
-          Serial.print(pitch);
-          Serial.print(" ");
-          blueTooth.write(roll);
-          Serial.println(roll);
+       roll = filter.getRoll();
+       pitch = filter.getPitch();
+       heading = filter.getYaw();
 
-          switchCharacteristic.setValue(heading);
+       rollReading.setValue(roll);
+       pitchReading.setValue(pitch);
+       headingReading.setValue(heading);
 
-
-        // increment previous time, so we keep proper pace
-        microsPrevious = microsPrevious + microsPerReading;
-        */
-      }
+       digitalWrite(ledPin, LOW);
+       
+     }
     }
+    
     digitalWrite(ledPin, LOW);
     Serial.println(("No Device Connected."));
   }
